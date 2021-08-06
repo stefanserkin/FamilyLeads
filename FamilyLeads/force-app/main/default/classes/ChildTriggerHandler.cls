@@ -1,6 +1,7 @@
 public with sharing class ChildTriggerHandler {
 
     public static void updateFamilyLead(List<Child__c> lstNewChildren) {
+        System.debug('Entered updateFamilyLead method');
 
         List<Lead> lstLeadsToUpdate = new List<Lead>();
 
@@ -10,16 +11,24 @@ public with sharing class ChildTriggerHandler {
                 setLeadIds.add(ch.Parent__c);
             }
         }
+        System.debug('setLeadIds has ' + setLeadIds.size() + ' entries');
+
         // If family lead is not already checked, check it
-        for (Lead l : [SELECT Id, Family_Lead__c FROM Lead WHERE Id IN :setLeadIds])
+        for (List<Lead> lstLeads : [SELECT Id, Family_Lead__c FROM Lead WHERE Id IN :setLeadIds])
         {
-            if (!l.Family_Lead__c) {
-                l.Child1_First_Name__c = 'FamilyLead';
+            for (Lead ld : lstLeads) {
+                System.debug('BEFORE: Family Lead is set to ' + ld.Family_Lead__c);
+                if (ld.Family_Lead__c != true) {
+                    ld.Child1_First_Name__c = 'FamilyLead';
+                    lstLeadsToUpdate.add(ld);
+                }
+                System.debug('AFTER: Family Lead is set to ' + ld.Family_Lead__c);
             }
         }
-
-        update lstLeadsToUpdate;
-
+        System.debug('lstLeadsToUpdate has ' + lstLeadsToUpdate.size() + ' entries');
+        if (!lstLeadsToUpdate.isEmpty()) {
+            update lstLeadsToUpdate;
+        }
     }
     
 }
