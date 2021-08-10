@@ -1,3 +1,6 @@
+/*
+ * Created by Stefan Serkin on August 5, 2021
+ * */
 public class FamilyLeadTriggerHandler {
 
     private static Id leadId;
@@ -16,19 +19,19 @@ public class FamilyLeadTriggerHandler {
             // Generate children records and add to list
             leadId = ld.Id;
             if (!String.isBlank(ld.Child1_First_Name__c)) {
-                lstChildren.add(generateChildRecord(ld.Child1_First_Name__c, ld.Child1_Last_Name__c, ld.Child1_Age__c, ld.Child1_Interests__c));
+                lstChildren.add(generateChildRecord(ld.Child1_First_Name__c, ld.Child1_Last_Name__c, ld.Child1_Birthdate__c, ld.Child1_Interests__c));
             }
             if (!String.isBlank(ld.Child2_First_Name__c)) {
-                lstChildren.add(generateChildRecord(ld.Child2_First_Name__c, ld.Child2_Last_Name__c, ld.Child2_Age__c, ld.Child2_Interests__c));
+                lstChildren.add(generateChildRecord(ld.Child2_First_Name__c, ld.Child2_Last_Name__c, ld.Child2_Birthdate__c, ld.Child2_Interests__c));
             }
             if (!String.isBlank(ld.Child3_First_Name__c)) {
-                lstChildren.add(generateChildRecord(ld.Child3_First_Name__c, ld.Child3_Last_Name__c, ld.Child3_Age__c, ld.Child3_Interests__c));
+                lstChildren.add(generateChildRecord(ld.Child3_First_Name__c, ld.Child3_Last_Name__c, ld.Child3_Birthdate__c, ld.Child3_Interests__c));
             }
             if (!String.isBlank(ld.Child4_First_Name__c)) {
-                lstChildren.add(generateChildRecord(ld.Child4_First_Name__c, ld.Child4_Last_Name__c, ld.Child4_Age__c, ld.Child4_Interests__c));
+                lstChildren.add(generateChildRecord(ld.Child4_First_Name__c, ld.Child4_Last_Name__c, ld.Child4_Birthdate__c, ld.Child4_Interests__c));
             }
             if (!String.isBlank(ld.Child5_First_Name__c)) {
-                lstChildren.add(generateChildRecord(ld.Child5_First_Name__c, ld.Child5_Last_Name__c, ld.Child5_Age__c, ld.Child5_Interests__c));
+                lstChildren.add(generateChildRecord(ld.Child5_First_Name__c, ld.Child5_Last_Name__c, ld.Child5_Birthdate__c, ld.Child5_Interests__c));
             }
         }
 
@@ -53,11 +56,11 @@ public class FamilyLeadTriggerHandler {
     }
 
     private static Child__c generateChildRecord(String firstName, String lastName, 
-                                                    Decimal age, String interests) {
+                                                    Date birthdate, String interests) {
         Child__c ch = new Child__c();
         ch.First_Name__c = firstName;
         ch.Last_Name__c  = lastName;
-        ch.Age__c        = age;
+        ch.Birthdate__c  = birthdate;
         ch.Interests__c  = interests;
         ch.Parent__c     = leadId;
 
