@@ -11,16 +11,32 @@ global with sharing class FamilyLeadConverter {
         Lead leadToConvert         = request.get(0).lead;
         List<Id> lstChildrenIds    = request.get(0).childrenIds;
         Boolean convertChildren    = request.get(0).convertChildren;
+        Id matchingContactId       = request.get(0).matchingContactId;
+        Id accountId;
         String strResult = '';
 
-        // Create household account
-        Account acc = new Account(Name='Household', recordTypeId=hhRecordTypeid);
-        insert acc;
+        System.debug('leadToConvert: ' + leadToConvert.Id);
+        System.debug('Number of lstChildrenIds: ' + lstChildrenIds.size());
+        System.debug('convertChildren: ' + convertChildren);
+        System.debug('matchingContactId: ' + matchingContactId);
 
+        // Set up values for conversion
         Database.LeadConvert lc = new Database.LeadConvert();
         lc.setLeadId(leadToConvert.Id);
-        lc.setAccountId(acc.Id);
         lc.setDoNotCreateOpportunity(true);
+
+        // If a matching contact was selected, find its Account.
+        // Otherwise, create a new Household Account to associate
+        if (matchingContactId != null) {
+            Contact ct = [SELECT Id, FirstName, LastName, AccountId FROM Contact WHERE Id = :matchingContactId LIMIT 1];
+            accountId = ct.AccountId;
+            lc.setAccountId(accountId);
+            lc.setContactId(ct.Id);
+        } else {
+            Account acc = createNewAccount();
+            accountId = acc.Id;
+            lc.setAccountId(accountId);
+        }
 
         LeadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted = true LIMIT 1];
         lc.setConvertedStatus(convertStatus.MasterLabel);
@@ -44,7 +60,7 @@ global with sharing class FamilyLeadConverter {
 
             for (Child__c ch : lstChildren) {
                 Contact ct = new Contact();
-                ct.AccountId = acc.Id;
+                ct.AccountId = accountId;
                 ct.FirstName = ch.First_Name__c;
                 ct.LastName = ch.Last_Name__c;
                 ct.Birthdate = ch.Birthdate__c;
@@ -71,7 +87,13 @@ global with sharing class FamilyLeadConverter {
 
     }
 
-    public class ConvertRequest{
+    private static Account createNewAccount() {
+        Account acc = new Account(Name='Household', recordTypeId=hhRecordTypeid);
+        insert acc;
+        return acc;
+    }
+
+    public class ConvertRequest {
         
         @InvocableVariable
         public Lead lead;
@@ -82,9 +104,12 @@ global with sharing class FamilyLeadConverter {
         @InvocableVariable
         public Boolean convertChildren;
 
+        @InvocableVariable
+        public Id matchingContactId;
+
     }
     
-    public class ConvertResult{
+    public class ConvertResult {
 
         @InvocableVariable
         public Id accountIdResult;
