@@ -1,9 +1,11 @@
 /*
- * Created by Stefan Serkin on July 18, 2021
+ * Created by Stefan Serkin on August 9, 2021
  * */
 global with sharing class FamilyLeadConverter {
 
     private static Id hhRecordTypeid = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('HH_Account').getRecordTypeId();
+    private static Id accountId;
+    private static Boolean isMerge = false;
 
     @InvocableMethod(label='Convert Family Lead' description='Converts a Lead record and related children records' category='Lead')
     public static List<ConvertResult> convertLead(List<ConvertRequest> request) {
@@ -12,13 +14,10 @@ global with sharing class FamilyLeadConverter {
         List<Id> lstChildrenIds    = request.get(0).childrenIds;
         Boolean convertChildren    = request.get(0).convertChildren;
         Id matchingContactId       = request.get(0).matchingContactId;
-        Id accountId;
-        String strResult = '';
+        Id matchingAccountId       = request.get(0).matchingAccountId;
 
-        System.debug('leadToConvert: ' + leadToConvert.Id);
-        System.debug('Number of lstChildrenIds: ' + lstChildrenIds.size());
-        System.debug('convertChildren: ' + convertChildren);
-        System.debug('matchingContactId: ' + matchingContactId);
+        Map<Id, Contact> mapContactsInAccount = new Map<Id, Contact>();
+        String strResult = '';
 
         // Set up values for conversion
         Database.LeadConvert lc = new Database.LeadConvert();
@@ -28,19 +27,32 @@ global with sharing class FamilyLeadConverter {
         // If a matching contact was selected, find its Account.
         // Otherwise, create a new Household Account to associate
         if (matchingContactId != null) {
-            Contact ct = [SELECT Id, FirstName, LastName, AccountId FROM Contact WHERE Id = :matchingContactId LIMIT 1];
-            accountId = ct.AccountId;
-            lc.setAccountId(accountId);
-            lc.setContactId(ct.Id);
+            isMerge = true;
+            accountId = matchingAccountId;
+            Account accWithContacts = [SELECT Id, 
+                                              (SELECT Id, FirstName, LastName 
+                                                 FROM Contacts) 
+                                         FROM Account 
+                                        WHERE Id = :matchingAccountId 
+                                        LIMIT 1];
+            // Put Contacts from household in map to check against child records
+            for (Contact ct : accWithContacts.Contacts) {
+                mapContactsInAccount.put(ct.Id, ct);
+            }
+            lc.setContactId(matchingContactId);
         } else {
             Account acc = createNewAccount();
             accountId = acc.Id;
-            lc.setAccountId(accountId);
         }
+        lc.setAccountId(accountId);
 
-        LeadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted = true LIMIT 1];
-        lc.setConvertedStatus(convertStatus.MasterLabel);
+        // Get converted status for lead record type
+        String SObjectType  = String.valueOf(leadToConvert.getSObjectType());
+        Id leadRecordTypeId = leadToConvert.RecordTypeId;
+        String closedStatus = getClosedStatusForRecordTypeId(SObjectType, leadRecordTypeId);
+        lc.setConvertedStatus(closedStatus);
 
+        // Convert lead
         Database.LeadConvertResult lcr = Database.convertLead(lc);
         if (lcr.isSuccess()) {
             strResult = 'Success!';
@@ -48,25 +60,10 @@ global with sharing class FamilyLeadConverter {
             strResult = 'Uh oh. This conversion was not successful';
         }
 
+        // Create a Contact for each child to be converted
         List<Contact> lstChildCtsToInsert = new List<Contact>();
-        List<Child__c> lstChildren = new List<Child__c>();
-
         if (convertChildren && !lstChildrenIds.isEmpty()) {
-            lstChildren = [SELECT Id, First_Name__c, Last_Name__c, Birthdate__c, Interests__c 
-                             FROM Child__c 
-                            WHERE Parent__c = :leadToConvert.Id
-                              AND Id IN :lstChildrenIds 
-                            LIMIT 10000];
-
-            for (Child__c ch : lstChildren) {
-                Contact ct = new Contact();
-                ct.AccountId = accountId;
-                ct.FirstName = ch.First_Name__c;
-                ct.LastName = ch.Last_Name__c;
-                ct.Birthdate = ch.Birthdate__c;
-                ct.Program_Interests__c = ch.Interests__c;
-                lstChildCtsToInsert.add(ct);
-            }
+            lstChildCtsToInsert = createContactsForChildren(lstChildrenIds, mapContactsInAccount);
         }
 
         if (!lstChildCtsToInsert.isEmpty()) {
@@ -87,12 +84,6 @@ global with sharing class FamilyLeadConverter {
 
     }
 
-    private static Account createNewAccount() {
-        Account acc = new Account(Name='Household', recordTypeId=hhRecordTypeid);
-        insert acc;
-        return acc;
-    }
-
     public class ConvertRequest {
         
         @InvocableVariable
@@ -107,6 +98,9 @@ global with sharing class FamilyLeadConverter {
         @InvocableVariable
         public Id matchingContactId;
 
+        @InvocableVariable
+        public Id matchingAccountId;
+
     }
     
     public class ConvertResult {
@@ -117,6 +111,55 @@ global with sharing class FamilyLeadConverter {
         @InvocableVariable
         public String saveResult;
 
+    }
+
+    private static String getClosedStatusForRecordTypeId(String SobjectType, Id recordTypeId) {
+        Status_Mapping__mdt sm = [SELECT Id, ClosedStatus__c 
+                                    FROM Status_Mapping__mdt 
+                                   WHERE SobjectType__c = :SobjectType
+                                     AND RecordTypeId__c = :recordTypeId
+                                   LIMIT 1];
+        return sm.ClosedStatus__c;
+    }
+
+    private static Account createNewAccount() {
+        Account acc = new Account(Name='Household', recordTypeId=hhRecordTypeid);
+        insert acc;
+        return acc;
+    }
+
+    private static List<Contact> createContactsForChildren(List<Id> lstChildrenIds, Map<Id, Contact> mapContactsInAccount) {
+        List<Contact> lstChildCtsToInsert = new List<Contact>();
+
+        List<Child__c> lstChildren = [SELECT Id, First_Name__c, Last_Name__c, Birthdate__c, Interests__c 
+                                        FROM Child__c 
+                                       WHERE Id IN :lstChildrenIds 
+                                       LIMIT 10000];
+
+        for (Child__c ch : lstChildren) {
+            Boolean foundMatchingContact = false;
+            // If merging, skip any children with matching contacts already in household
+            if (isMerge) {
+                for (Contact ct : mapContactsInAccount.values()) {
+                    if (ct.FirstName.equals(ch.First_Name__c) && ct.LastName.equals(ch.Last_Name__c)) {
+                        foundMatchingContact = true;
+                    }
+                }
+            }
+            if (foundMatchingContact) {
+                continue;
+            }
+
+            Contact ct = new Contact();
+            ct.AccountId = accountId;
+            ct.FirstName = ch.First_Name__c;
+            ct.LastName  = ch.Last_Name__c;
+            ct.Birthdate = ch.Birthdate__c;
+            ct.Program_Interests__c = ch.Interests__c;
+            lstChildCtsToInsert.add(ct);
+        }
+
+        return lstChildCtsToInsert;
     }
     
 }
