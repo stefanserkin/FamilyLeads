@@ -4,7 +4,7 @@
 global with sharing class MatchingContactFinder {
 
     @InvocableMethod(label='Finding Matching Contacts' description='Returns potential matching Contacts for a Lead' category='Lead')
-    public static List<Result> convertLead(List<Request> request) {
+    public static List<Result> findMatchingContacts(List<Request> request) {
         Lead ld = request.get(0).lead;
 
         List<Contact> lstMatchingContacts = [SELECT Id, FirstName, LastName, Email, Phone, Birthdate
