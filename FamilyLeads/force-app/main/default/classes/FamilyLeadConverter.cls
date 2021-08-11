@@ -75,8 +75,8 @@ global with sharing class FamilyLeadConverter {
         }
 
         // Parse output
-        ConvertResult result = new ConvertResult();
-        result.saveResult = strResult;
+        ConvertResult result   = new ConvertResult();
+        result.saveResult      = strResult;
         result.accountIdResult = lcr.getAccountId();
         List<ConvertResult> resultList = new List<ConvertResult>();
         resultList.add(result);
@@ -113,13 +113,17 @@ global with sharing class FamilyLeadConverter {
 
     }
 
-    private static String getClosedStatusForRecordTypeId(String SobjectType, Id recordTypeId) {
+    private static String getClosedStatusForRecordTypeId(String SObjectType, Id recordTypeId) {
         Status_Mapping__mdt sm = [SELECT Id, ClosedStatus__c 
                                     FROM Status_Mapping__mdt 
-                                   WHERE SobjectType__c = :SobjectType
+                                   WHERE SObjectType__c = :SObjectType
                                      AND RecordTypeId__c = :recordTypeId
                                    LIMIT 1];
-        return sm.ClosedStatus__c;
+        if (sm != null) {
+            return sm.ClosedStatus__c;
+        } else {
+            return 'Closed - Converted';
+        }
     }
 
     private static Account createNewAccount() {
