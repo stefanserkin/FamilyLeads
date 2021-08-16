@@ -6,5 +6,5 @@ Web-to-Lead submissions requires redundant fields on the Lead object.
 
 
 ## Package URL
-https://test.salesforce.com/packaging/installPackage.apexp?p0=04t7j000000LRvW
+
 

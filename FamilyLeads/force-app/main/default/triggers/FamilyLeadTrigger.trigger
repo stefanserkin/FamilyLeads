@@ -1,4 +1,4 @@
-trigger FamilyLeadTrigger on Lead (after insert, after update) {
+trigger FamilyLeadTrigger on Lead (after insert) {
 
     FamilyLeadTriggerHandler.createChildRecords(Trigger.new);
 

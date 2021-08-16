@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>All_Children_of_Open_Leads</fullName>
+    <columns>NAME</columns>
+    <columns>Parent__c</columns>
+    <columns>Child_Name__c</columns>
+    <columns>Age__c</columns>
+    <columns>Gender__c</columns>
+    <columns>Birthdate__c</columns>
+    <columns>Interests__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>IsConverted__c</field>
+        <operation>equals</operation>
+        <value>0</value>
+    </filters>
+    <filters>
+        <field>Parent_Is_Converted__c</field>
+        <operation>equals</operation>
+        <value>0</value>
+    </filters>
+    <label>All Children of Open Leads</label>
+</ListView>

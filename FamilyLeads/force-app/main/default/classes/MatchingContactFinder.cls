@@ -16,16 +16,9 @@ global with sharing class MatchingContactFinder {
                                                  OR npe01__AlternateEmail__c LIKE :ld.Email
                                                  OR HomePhone = :ld.Phone)];
 
-        String strMatchingContacts = '';
-        for (Contact ct : lstMatchingContacts) {
-            strMatchingContacts += ct.FirstName + ' ' + ct.LastName + ', ' + ct.Email + ', ' + ct.Phone;
-            strMatchingContacts += '\n';
-        }
-
         // Parse output
         Result result = new Result();
         result.lstMatchingContacts = lstMatchingContacts;
-        result.strMatchingContacts = strMatchingContacts;
         List<Result> resultList = new List<Result>();
         resultList.add(result);
         return resultList;
@@ -43,9 +36,6 @@ global with sharing class MatchingContactFinder {
 
         @invocableVariable
         public List<Contact> lstMatchingContacts;
-
-        @invocableVariable
-        public String strMatchingContacts;
 
     }
     
