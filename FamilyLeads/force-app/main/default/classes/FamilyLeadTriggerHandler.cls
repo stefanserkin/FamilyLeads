@@ -1,6 +1,3 @@
-/*
- * Created by Stefan Serkin on August 5, 2021
- * */
 public class FamilyLeadTriggerHandler {
 
     private static Id leadId;

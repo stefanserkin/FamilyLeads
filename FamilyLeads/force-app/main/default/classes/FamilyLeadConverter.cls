@@ -1,6 +1,3 @@
-/*
- * Created by Stefan Serkin on August 9, 2021
- * */
 global with sharing class FamilyLeadConverter {
 
     private static Id hhRecordTypeid = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('HH_Account').getRecordTypeId();

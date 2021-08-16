@@ -1,6 +1,3 @@
-/*
- * Created by Stefan Serkin on July 18, 2021
- * */
 global with sharing class MatchingContactFinder {
 
     @InvocableMethod(label='Finding Matching Contacts' description='Returns potential matching Contacts for a Lead' category='Lead')
